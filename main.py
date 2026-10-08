@@ -1,4 +1,5 @@
 import os
+import time
 from flask import Flask
 from threading import Thread
 import telebot
@@ -53,23 +54,34 @@ Lütfen yüzeysel veya geçiştirme yanıtlar verme. Tıpkı profesyonel bir fin
 def analyze(message):
     bot.reply_to(message, "📊 Derin matematiksel analiz yapılıyor ve model verileri hesaplanıyor, lütfen bekleyin...")
     
-    try:
-        response = client.models.generate_content(
-            model="gemini-3.8-flash",
-            contents=[PROMPT, f"ANALİZ EDİLECEK MAÇLAR VE BAHİSLER:\n{message.text}"]
-        )
-        
+    # Sırasıyla denenecek modeller (503 yoğunluk hatasına karşı yedekli)
+    models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.5-pro"]
+    
+    response = None
+    last_error = None
+
+    for model_name in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=[PROMPT, f"ANALİZ EDİLECEK MAÇLAR VE BAHİSLER:\n{message.text}"]
+            )
+            if response and response.text:
+                break
+        except Exception as e:
+            last_error = e
+            time.sleep(1) # Hata durumunda 1 saniye bekleyip sonraki modeli dene
+
+    if response and response.text:
         reply_text = response.text
-        
         # Telegram mesaj sınırı (4000 karakter) kontrolü
         if len(reply_text) > 4000:
             for i in range(0, len(reply_text), 4000):
                 bot.send_message(message.chat.id, reply_text[i:i+4000])
         else:
             bot.reply_to(message, reply_text)
-            
-    except Exception as e:
-        bot.reply_to(message, f"Bir hata oluştu: {str(e)}")
+    else:
+        bot.reply_to(message, f"Aşırı yoğunluk nedeniyle analiz şu an üretilemedi. Hata: {str(last_error)}")
 
 if __name__ == "__main__":
     keep_alive()
