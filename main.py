@@ -4,7 +4,7 @@ from threading import Thread
 import telebot
 from google import genai
 
-# Render port hatası vermesin diye minik web sunucusu
+# Render port ayarı için Flask web sunucusu
 app = Flask('')
 
 @app.route('/')
@@ -18,62 +18,50 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# Bot ve Gemini Ayarları
+# Ortam Değişkenleri
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-PROMPT = """Sana verilen futbol verilerini ve istatistiklerini analiz et.
-Aşağıda belirtilen 31 başlığın TAMAMINI eksiksiz ve sırasıyla yanıtla:
+PROMPT = """Sen dünyaca ünlü, profesyonel bir Futbol Analisti ve Bahis Matematiği Uzmanısın.
 
-1. Maç Sonucu
-2. Toplam Gol Sayısı
-3. Her iki takım da gol atar
-4. Çifte Şans
-5. İlk Yarı sonucu
-6. İlk Yarı/Maç Sonucu
-7. Asya Toplam Gol Sayısı
-8. İki yarıda da gol olur
-9. Toplam Şut Sayısı
-10. Ev sahibi - Toplam Şut
-11. Deplasman - Toplam Şut
-12. Toplam İsabetli Şut Sayısı
-13. Ev sahibi - Toplam İsabetli Şut
-14. Deplasman - Toplam İsabetli Şut Sayısı
-15. Toplam Korner Sayısı
-16. Ev sahibi - Toplam Korner
-17. Deplasman - Toplam Korner
-18. Toplam Kart Sayısı
-19. Oyuncuya Yapılan Fauller
-20. Oyuncu Ofsaytta Kalma
-21. Toplam Faul Sayısı
-22. Ev sahibi - Toplam Faul
-23. Deplasman - Toplam Faul
-24. Toplam Ofsayt Sayısı
-25. Ev sahibi - Toplam Ofsayt
-26. Deplasman - Toplam Ofsayt
-27. Toplam Top Çalma Sayısı
-28. Ev sahibi - Toplam Top Çalma
-29. Deplasman - Toplam Top Çalma
-30. Toplam Taç Atışı Sayısı
-31. Toplam Kale Vuruşu
+Sana verilen kuponlar, maç listeleri veya özel bahisler için derinlemesine bir BAŞA BAŞ (IMPLIED PROBABILITY) VE MODEL ANALİZİ yapacaksın.
 
-Yanıtı net, okunabilir ve tam olarak bu 31 maddeye sadık kalarak ver."""
+ANALİZ METHODUN VE ŞABLONUN (HER MAÇ İÇİN BİREBİR UYGULA):
+
+1. **Oran ve Başa Baş İhtimali Hesabı:**
+   - Verilen bahsin oranının gerektirdiği teorik kazanma yüzdesini hesapla (1 / Oran).
+   - Takımın güncel form durumu, son 5-10 maç trendleri, gol/köşe ortalamaları ve H2H geçmişini incele.
+   - İstatistiki veriler ile oran arasındaki farkı değerlendir (Value var mı, yoksa oran değersiz mi?).
+
+2. **Kategori ve Karar Ver:**
+   Her seçim için kesin bir karar ver ve simgeleri kullan:
+   - 🟢 TUT / TUTULABİLİR (Güven Skoru: X/10)
+   - 🟠 SINIRDA / RİSKLİ (Güven Skoru: X/10)
+   - 🔴 ÇIKAR / ÇIKARILMALI (Nedeniyle birlikte)
+
+3. **NİHAİ KUPON ÖZETİ VE ÇEKİRDEK KUPON:**
+   Analizin en sonunda şunları sun:
+   - **Genel Kupon Değerlendirmesi Tablosu:** (Sıra | Maç | Bahis | Oran | Karar | Güven)
+   - **Tavsiye Edilen Çekirdek Kupon:** Kupondan çıkarılması gereken riskli/değersiz maçları eleyip elindeki en sağlam 3-5 maçlık kombinasyonu oluştur.
+
+Lütfen yüzeysel veya geçiştirme yanıtlar verme. Tıpkı profesyonel bir finansal/istatistiki rapor sunar gibi net sayılar, olasılık karşılaştırmaları ve açık kararlarla analiz üret."""
 
 @bot.message_handler(func=lambda message: True)
 def analyze(message):
-    bot.reply_to(message, "⏳ Veriler Gemini ile analiz ediliyor...")
+    bot.reply_to(message, "📊 Derin matematiksel analiz yapılıyor ve model verileri hesaplanıyor, lütfen bekleyin...")
     
     try:
         response = client.models.generate_content(
-            model="gemini-3.8-flash",
-            contents=[PROMPT, f"ANALİZ EDİLECEK MAÇ VERİLERİ:\n{message.text}"]
+            model="gemini-1.5-pro",
+            contents=[PROMPT, f"ANALİZ EDİLECEK MAÇLAR VE BAHİSLER:\n{message.text}"]
         )
         
         reply_text = response.text
         
+        # Telegram mesaj sınırı (4000 karakter) kontrolü
         if len(reply_text) > 4000:
             for i in range(0, len(reply_text), 4000):
                 bot.send_message(message.chat.id, reply_text[i:i+4000])
