@@ -55,7 +55,7 @@ def analyze(message):
     
     try:
         response = client.models.generate_content(
-            model="gemini-3.8-pro",
+            model="gemini-3.8-flash",
             contents=[PROMPT, f"ANALİZ EDİLECEK MAÇLAR VE BAHİSLER:\n{message.text}"]
         )
         
